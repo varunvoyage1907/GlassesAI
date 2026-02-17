@@ -42,15 +42,52 @@ The **HeyCyan G300** are AI-enabled smart glasses with the following features:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Touch Controls
+### Touch Controls & Buttons
 
-| Gesture | Action |
-|---------|--------|
-| Single Tap | Take photo |
-| Double Tap | Voice command activation |
-| Swipe Forward | Volume up |
-| Swipe Back | Volume down |
-| Long Press | Power on/off |
+The G300 glasses have touch-sensitive temples and a physical button:
+
+| Gesture/Button | Action | Notification Code |
+|----------------|--------|-------------------|
+| **Single Tap** | Take AI Photo | `0x02` |
+| **Double Tap** | Activate Microphone | `0x03` |
+| **Swipe Forward** | Volume Up | `0x12` |
+| **Swipe Back** | Volume Down | `0x12` |
+| **Long Press** | Power On/Off | - |
+| **Temple Press** | Voice Command | `0x03` |
+
+### BLE Notification Events
+
+When the user interacts with the glasses, they send BLE notifications to the app:
+
+| Event Code | Description | Data Format |
+|------------|-------------|-------------|
+| `0x02` | AI Photo Ready | `loadData[9] == 0x02` means photo captured |
+| `0x03` | Microphone Activated | `loadData[7] == 1` means mic started |
+| `0x04` | OTA Progress | Firmware update progress |
+| `0x05` | Battery Status | `loadData[7]` = level, `loadData[8]` = charging |
+| `0x0C` | Pause Event | Voice playback paused |
+| `0x0D` | Unbind Event | App unbinding requested |
+| `0x0E` | Low Storage | Device memory low |
+| `0x10` | Translation Pause | Translation paused |
+| `0x12` | Volume Change | Music/call volume changed |
+
+### Touch Gesture Control Modes
+
+The SDK supports configuring what touch gestures do:
+
+```kotlin
+enum class TouchGestureControlType {
+    OFF,           // 0x00 - Gestures disabled
+    MUSIC,         // 0x01 - Control music playback
+    VIDEO,         // 0x02 - Control video (TikTok, etc)
+    MSL_PRAISE,    // 0x03 - Muslim prayer counter
+    EBOOK,         // 0x04 - E-book page turning
+    TAKE_PHOTO,    // 0x05 - Camera capture
+    PHONE_CALL,    // 0x06 - Answer/end calls
+    GAME,          // 0x07 - Game controls
+    HR_MEASURE     // 0x08 - Heart rate measurement
+}
+```
 
 ## How Image Capture Works via Bluetooth
 
@@ -109,23 +146,52 @@ The G300 glasses communicate with the Android app via **Bluetooth Low Energy (BL
 ```kotlin
 // In GlassesManager.kt
 
-// Step 1: Listen for photo notification
-deviceNotifyListener = object : GlassesDeviceNotifyListener() {
+// Step 1: Register notification listener
+private val deviceNotifyListener = object : GlassesDeviceNotifyListener() {
     override fun parseData(cmdType: Int, response: GlassesDeviceNotifyRsp) {
-        val eventType = response.data?.firstOrNull()?.toInt() ?: return
+        val eventType = response.loadData[6].toInt() and 0xFF
+        
         when (eventType) {
+            // AI Photo notification - user tapped glasses
             0x02 -> {
-                // AI Photo ready - fetch it
-                fetchThumbnailNow()
+                if (response.loadData.size > 9 && response.loadData[9].toInt() == 0x02) {
+                    // AI photo ready - fetch it
+                    fetchThumbnailNow()
+                }
             }
+            
+            // Microphone activated - user double-tapped
             0x03 -> {
-                // Microphone activated on glasses
+                if (response.loadData[7].toInt() == 1) {
+                    onMicrophoneActivated?.invoke()
+                }
+            }
+            
+            // Battery status update
+            0x05 -> {
+                val battery = response.loadData[7].toInt() and 0xFF
+                val charging = response.loadData[8].toInt() == 1
+                _batteryLevel.value = battery
+                _isCharging.value = charging
+            }
+            
+            // Volume change
+            0x12 -> {
+                val musicMin = response.loadData[8].toInt()
+                val musicMax = response.loadData[9].toInt()
+                val musicCurrent = response.loadData[10].toInt()
+                // Handle volume change...
             }
         }
     }
 }
 
-// Step 2: Accumulate chunks
+// Step 2: Register listener on initialization
+fun initialize() {
+    LargeDataHandler.getInstance().addOutDeviceListener(LISTENER_ID, deviceNotifyListener)
+}
+
+// Step 3: Accumulate image chunks
 private val imageDataBuffer = mutableListOf<Byte>()
 
 private fun fetchThumbnailNow() {
@@ -138,12 +204,40 @@ private fun fetchThumbnailNow() {
         if (success) {
             // Transfer complete - we have full image
             val fullImage = imageDataBuffer.toByteArray()
-            onImageCaptured?.invoke(fullImage)
+            onImageReceived?.invoke(fullImage)
             imageDataBuffer.clear()
         }
         // If success=false, more chunks coming...
     }
 }
+```
+
+### Triggering Actions from App
+
+You can also trigger actions programmatically:
+
+```kotlin
+// Capture AI Photo (same as user tapping glasses)
+fun captureAIPhoto() {
+    val command = byteArrayOf(0x02, 0x01, 0x06, 0x02, 0x02, 0x02)
+    LargeDataHandler.getInstance().glassesControl(command) { cmdType, response ->
+        if (response.dataType == 1) {
+            // Command accepted - wait for 0x02 notification
+        }
+    }
+}
+
+// Take regular photo (stored on glasses)
+val CMD_TAKE_PHOTO = byteArrayOf(0x02, 0x01, 0x01)
+LargeDataHandler.getInstance().glassesControl(CMD_TAKE_PHOTO) { _, response ->
+    // Photo taken and stored on device
+}
+
+// Sync time with glasses
+LargeDataHandler.getInstance().syncTime { _, _ -> }
+
+// Get battery status
+LargeDataHandler.getInstance().syncBattery()
 ```
 
 ### Transfer Time
