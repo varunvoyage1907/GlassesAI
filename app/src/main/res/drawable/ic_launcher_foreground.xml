@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Glasses shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,50 Q30,40 40,40 L50,40 Q54,40 54,50 Q54,60 50,60 L40,60 Q30,60 30,50 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M58,50 Q58,40 68,40 L78,40 Q78,40 78,50 Q78,60 78,60 L68,60 Q58,60 58,50 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,48 L58,48 L58,52 L50,52 Z"/>
+    
+    <!-- AI sparkle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M75,30 L77,35 L82,37 L77,39 L75,44 L73,39 L68,37 L73,35 Z"/>
+</vector>

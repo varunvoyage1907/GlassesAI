@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.GlassesAI" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary color -->
+        <item name="colorPrimary">#6200EE</item>
+        <item name="colorPrimaryVariant">#3700B3</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        
+        <!-- Secondary color -->
+        <item name="colorSecondary">#03DAC6</item>
+        <item name="colorSecondaryVariant">#018786</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        
+        <!-- Background -->
+        <item name="android:colorBackground">@android:color/white</item>
+        <item name="colorOnBackground">@android:color/black</item>
+        
+        <!-- Surface -->
+        <item name="colorSurface">@android:color/white</item>
+        <item name="colorOnSurface">@android:color/black</item>
+        
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@android:color/black</item>
+    </style>
+</resources>
