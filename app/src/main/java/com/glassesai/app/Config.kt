@@ -22,14 +22,14 @@ object Config {
     const val OPENCLAW_GATEWAY_TOKEN = "585i3qwe480u1tmhyhyafseixuq790r4"
     
     /**
-     * OpenClaw HTTP API URL (OpenResponses format)
+     * OpenClaw HTTP API URL (OpenAI Chat Completions format)
      */
-    const val OPENCLAW_API_URL = "https://openclaw-production-ae7f.up.railway.app/v1/responses"
+    const val OPENCLAW_API_URL = "https://openclaw-production-ae7f.up.railway.app/v1/chat/completions"
     
     /**
      * OpenClaw model identifier
      */
-    const val OPENCLAW_MODEL = "openclaw:main"
+    const val OPENCLAW_MODEL = "claude"
     
     // ============================================
     // AUDIO CONFIGURATION

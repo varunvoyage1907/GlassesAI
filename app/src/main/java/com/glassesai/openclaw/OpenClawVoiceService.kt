@@ -265,60 +265,73 @@ class OpenClawVoiceService(private val context: Context) {
     }
     
     /**
-     * Build request body for OpenClaw API
+     * Build request body for OpenClaw API (OpenAI Chat Completions format)
      */
     private fun buildRequestBody(text: String, image: ByteArray?): String {
         val json = JSONObject()
         json.put("model", Config.OPENCLAW_MODEL)
         
+        val messagesArray = JSONArray()
+        
         if (image != null) {
-            // With image: use array format
-            val inputArray = JSONArray()
+            // With image: use OpenAI vision format
+            val contentArray = JSONArray()
             
-            // Add text message
-            inputArray.put(JSONObject().apply {
-                put("type", "message")
-                put("role", "user")
-                put("content", text)
+            // Add text part
+            contentArray.put(JSONObject().apply {
+                put("type", "text")
+                put("text", text)
             })
             
-            // Add image
+            // Add image part
             val base64Image = Base64.encodeToString(image, Base64.NO_WRAP)
-            inputArray.put(JSONObject().apply {
-                put("type", "input_image")
-                put("source", JSONObject().apply {
-                    put("type", "base64")
-                    put("media_type", "image/jpeg")
-                    put("data", base64Image)
+            contentArray.put(JSONObject().apply {
+                put("type", "image_url")
+                put("image_url", JSONObject().apply {
+                    put("url", "data:image/jpeg;base64,$base64Image")
                 })
             })
             
-            json.put("input", inputArray)
+            messagesArray.put(JSONObject().apply {
+                put("role", "user")
+                put("content", contentArray)
+            })
         } else {
-            // Text only: simple string format
-            json.put("input", text)
+            // Text only: simple message format
+            messagesArray.put(JSONObject().apply {
+                put("role", "user")
+                put("content", text)
+            })
         }
+        
+        json.put("messages", messagesArray)
         
         return json.toString()
     }
     
     /**
-     * Handle response from OpenClaw API
+     * Handle response from OpenClaw API (OpenAI Chat Completions format)
+     * Response format: {"choices": [{"message": {"content": "..."}}]}
      */
     private fun handleOpenClawResponse(responseBody: String) {
         try {
-            Log.d(TAG, "OpenClaw response: ${responseBody.take(300)}")
+            Log.d(TAG, "OpenClaw response: ${responseBody.take(500)}")
             
             val json = JSONObject(responseBody)
-            val output = json.optString("output", "")
             
-            if (output.isNotBlank()) {
-                Log.d(TAG, "AI response: ${output.take(100)}...")
+            // Parse OpenAI Chat Completions format
+            val choices = json.optJSONArray("choices")
+            val firstChoice = choices?.optJSONObject(0)
+            val message = firstChoice?.optJSONObject("message")
+            val content = message?.optString("content", "") ?: ""
+            
+            if (content.isNotBlank()) {
+                Log.d(TAG, "AI response: ${content.take(100)}...")
                 
                 mainScope.launch {
-                    onAiResponseChunk?.invoke(output)
-                    onAiResponse?.invoke(output)
-                    speak(output)
+                    onAiResponseChunk?.invoke(content)
+                    onAiResponse?.invoke(content)
+                    speak(content)
                 }
             } else {
                 Log.w(TAG, "Empty response from OpenClaw")

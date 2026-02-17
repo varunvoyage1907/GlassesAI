@@ -130,7 +130,7 @@ class OpenClawBridge {
             conversationHistory.forEach { messagesArray.put(it) }
             
             val body = JSONObject().apply {
-                put("model", "openclaw")
+                put("model", Config.OPENCLAW_MODEL)
                 put("messages", messagesArray)
                 put("stream", false)
             }
